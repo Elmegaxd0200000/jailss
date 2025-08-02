@@ -44,9 +44,9 @@ app.get('/getScripts', (req, res) => {
     return res.status(404).json([]);
   }
   const scripts = scriptsQueue[gameName] || [];
-  scriptsQueue[gameName] = [];
+  scriptsQueue[gameName] = []; // Limpia la cola después de enviar
   res.json(scripts);
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Backend JailbloxSS corriendo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor JailbloxSS corriendo en puerto ${PORT}`));
