@@ -1,61 +1,52 @@
-import express from "express";
-import bodyParser from "body-parser";
-import cors from "cors";
-
+const express = require('express');
+const cors = require('cors');
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-// ✅ Datos simulados en memoria (reemplaza esto con datos reales de tu juego si tienes integración)
-let games = [
-    { id: "game123", name: "Prison Escape" },
-    { id: "game456", name: "City Roleplay" }
-];
+const games = new Set();
+const scriptsQueue = {};
 
-let players = {
-    "game123": ["Juan", "Pedro", "Maria"],
-    "game456": ["Lucas", "Sofia"]
-};
-
-// ✅ Ruta raíz para evitar el error "Cannot GET /"
-app.get("/", (req, res) => {
-    res.send("Servidor JailbloxSS funcionando ✅");
+// Reportar juego conectado
+app.post('/updateGame', (req, res) => {
+  const { name } = req.body;
+  if (typeof name !== 'string') {
+    return res.status(400).json({ error: 'Nombre de juego inválido' });
+  }
+  games.add(name);
+  if (!scriptsQueue[name]) scriptsQueue[name] = [];
+  res.json({ success: true });
 });
 
-// ✅ Lista de juegos
-app.get("/games", (req, res) => {
-    res.json(games);
+// Listar juegos conectados
+app.get('/games', (req, res) => {
+  res.json(Array.from(games));
 });
 
-// ✅ Lista de jugadores en un juego
-app.get("/players/:gameId", (req, res) => {
-    const { gameId } = req.params;
-    if (players[gameId]) {
-        res.json(players[gameId]);
-    } else {
-        res.json([]);
-    }
+// Enviar script para ejecutar en juego
+app.post('/sendScript', (req, res) => {
+  const { gameName, script } = req.body;
+  if (typeof gameName !== 'string' || typeof script !== 'string') {
+    return res.status(400).json({ error: 'Datos inválidos' });
+  }
+  if (!games.has(gameName)) {
+    return res.status(400).json({ error: 'Juego no conectado' });
+  }
+  scriptsQueue[gameName].push(script);
+  res.json({ success: true });
 });
 
-// ✅ Endpoint para ejecutar scripts
-app.post("/sendScript", (req, res) => {
-    const { gameId, script } = req.body;
-
-    if (!gameId || !script) {
-        return res.status(400).json({ error: "Faltan parámetros" });
-    }
-
-    console.log(`📌 Script recibido para ${gameId}:`);
-    console.log(script);
-
-    // Aquí es donde deberías enviar el script al juego real mediante tu sistema
-    // Por ejemplo, usando un WebSocket, una API interna, o Roblox HTTPService
-
-    res.json({ success: true, message: "Script enviado con éxito" });
+// Obtener scripts pendientes para un juego
+app.get('/getScripts', (req, res) => {
+  const gameName = req.query.gameName;
+  if (!gameName || !games.has(gameName)) {
+    return res.status(404).json([]);
+  }
+  const scripts = scriptsQueue[gameName] || [];
+  scriptsQueue[gameName] = [];
+  res.json(scripts);
 });
 
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Backend JailbloxSS corriendo en puerto ${PORT}`));
