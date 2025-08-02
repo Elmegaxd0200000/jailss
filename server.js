@@ -8,7 +8,10 @@ app.use(express.json());
 const games = new Set();
 const scriptsQueue = {};
 
-// Reportar juego conectado
+app.get('/', (req, res) => {
+  res.send('Servidor JailbloxSS funcionando 🔥');
+});
+
 app.post('/updateGame', (req, res) => {
   const { name } = req.body;
   if (typeof name !== 'string') {
@@ -19,12 +22,10 @@ app.post('/updateGame', (req, res) => {
   res.json({ success: true });
 });
 
-// Listar juegos conectados
 app.get('/games', (req, res) => {
   res.json(Array.from(games));
 });
 
-// Enviar script para ejecutar en juego
 app.post('/sendScript', (req, res) => {
   const { gameName, script } = req.body;
   if (typeof gameName !== 'string' || typeof script !== 'string') {
@@ -37,7 +38,6 @@ app.post('/sendScript', (req, res) => {
   res.json({ success: true });
 });
 
-// Obtener scripts pendientes para un juego
 app.get('/getScripts', (req, res) => {
   const gameName = req.query.gameName;
   if (!gameName || !games.has(gameName)) {
