@@ -3,56 +3,67 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
 
-let currentScript = null;
-let games = [
-    { id: "123", name: "Juego Test" }
-];
-let players = {
-    "123": ["Player1", "Player2"]
-};
+let games = {}; // { gameId: { name, players: [] } }
+let scripts = {}; // scripts pending for each gameId
 
-// Endpoint para subir script
-app.post('/upload', (req, res) => {
-    if (req.body.script) {
-        currentScript = req.body.script;
-        console.log("Nuevo script recibido:", currentScript);
-        res.json({ status: 'ok' });
-    } else {
-        res.status(400).json({ error: 'No se envió script' });
+// Registrar juego
+app.post('/registerGame', (req, res) => {
+    const { gameId, name } = req.body;
+    if (!gameId || !name) return res.status(400).json({ error: 'Faltan datos' });
+
+    if (!games[gameId]) {
+        games[gameId] = { name, players: [] };
     }
+    res.json({ message: 'Juego registrado' });
 });
 
-// Endpoint para obtener el script (se borra después de enviarlo)
-app.get('/get-script', (req, res) => {
-    if (currentScript) {
-        const scriptToSend = currentScript;
-        currentScript = null; // <- SE LIMPIA para no repetir
-        res.json({ script: scriptToSend });
-    } else {
-        res.json({ script: null });
+// Registrar jugador
+app.post('/registerPlayer', (req, res) => {
+    const { gameId, playerName } = req.body;
+    if (!games[gameId]) return res.status(400).json({ error: 'Juego no encontrado' });
+
+    if (!games[gameId].players.includes(playerName)) {
+        games[gameId].players.push(playerName);
     }
+    res.json({ message: 'Jugador registrado' });
 });
 
-// Endpoint para lista de juegos
+// Obtener juegos
 app.get('/games', (req, res) => {
-    res.json(games);
+    const list = Object.keys(games).map(id => ({ id, name: games[id].name }));
+    res.json(list);
 });
 
-// Endpoint para lista de jugadores por juego
-app.get('/players', (req, res) => {
-    const gameId = req.query.gameId;
-    if (gameId && players[gameId]) {
-        res.json(players[gameId]);
-    } else {
-        res.json([]);
-    }
+// Obtener jugadores
+app.get('/players/:gameId', (req, res) => {
+    const gameId = req.params.gameId;
+    if (!games[gameId]) return res.status(404).json({ error: 'Juego no encontrado' });
+
+    res.json(games[gameId].players);
 });
 
-app.listen(port, () => {
-    console.log(`Servidor JailbloxSS corriendo en puerto ${port}`);
+// Enviar script
+app.post('/sendScript', (req, res) => {
+    const { gameId, script } = req.body;
+    if (!games[gameId]) return res.status(404).json({ error: 'Juego no encontrado' });
+
+    scripts[gameId] = script;
+    res.json({ message: 'Script enviado' });
+});
+
+// Obtener script pendiente (Roblox lo pide)
+app.get('/getScript/:gameId', (req, res) => {
+    const gameId = req.params.gameId;
+    const script = scripts[gameId] || "";
+    scripts[gameId] = ""; // limpiar después de enviar
+    res.send(script);
+});
+
+app.listen(PORT, () => {
+    console.log(`Servidor en puerto ${PORT}`);
 });
