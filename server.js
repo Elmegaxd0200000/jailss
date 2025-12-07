@@ -7,36 +7,23 @@ app.use(express.json());
 
 let scriptsQueue = [];
 
-// Página principal
 app.get('/', (req, res) => {
-  res.send('✅ JailbloxSS Executor funcionando');
+  res.send('e if you read this ur gay');
 });
 
-// Recibe script desde el WPF
 app.post('/sendScript', (req, res) => {
   const { script } = req.body;
-  if (!script || typeof script !== 'string') {
-    return res.status(400).json({ error: 'Script inválido' });
-  }
-
-  // Agregar script a la cola solo si no está duplicado
-  if (!scriptsQueue.includes(script)) {
-    scriptsQueue.push(script);
-  }
-
-  res.json({ success: true, message: 'Script añadido a la cola' });
+  if (!script || typeof script !== 'string') return res.status(400).json({ error: 'Script inválido' });
+  if (!scriptsQueue.includes(script)) scriptsQueue.push(script);
+  res.json({ success: true, message: 'scrept aded to executer' });
 });
 
-// Devuelve scripts y limpia la cola
 app.get('/getScripts', (req, res) => {
-  if (scriptsQueue.length === 0) {
-    return res.json([]); // Cola vacía
-  }
-
-  const scripts = [...scriptsQueue]; // Copia
-  scriptsQueue = []; // Limpia la cola
+  if (scriptsQueue.length === 0) return res.json([]);
+  const scripts = [...scriptsQueue];
+  scriptsQueue = [];
   res.json(scripts);
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor ejecutándose en el puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🔥 ${PORT}`));
